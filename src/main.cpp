@@ -1,49 +1,45 @@
-// Quad channel output test
-// Play two WAV files on two audio shields.
-//
-// TODO: add info about required hardware connections here....
-//
-// Data files to put on your SD card can be downloaded here:
-//   http://www.pjrc.com/teensy/td_libs_AudioDataFiles.html
-//
-// This example code is in the public domain.
-
 #include <Audio.h>
 #include <Wire.h>
 #include <SPI.h>
 #include <SD.h>
 #include <SerialFlash.h>
-#include <array>
 
 // GUItool: begin automatically generated code
-AudioInputI2SQuad        analog_in;      //xy=367.33331298828125,499.3332824707031
-AudioInputUSB            from_host;           //xy=372.33331298828125,317.3333435058594
-AudioMixer4              input_mix_0;         //xy=941.3333129882812,411.3333435058594
-AudioMixer4              input_mix_1; //xy=944.3333129882812,591.3333129882812
-AudioAmplifier           amp1;           //xy=1004.3333282470703,226.3333282470703
-AudioAmplifier           amp2;           //xy=1038.3333282470703,276.3333282470703
-AudioOutputUSB           to_host;           //xy=1583.3333740234375,501.3333435058594
-AudioOutputI2SQuad       analog_out;      //xy=1594.3333740234375,302.33331298828125
-AudioConnection          patchCord1(analog_in, 0, input_mix_0, 0);
-AudioConnection          patchCord2(analog_in, 0, input_mix_1, 0);
-AudioConnection          patchCord3(analog_in, 1, input_mix_0, 1);
-AudioConnection          patchCord4(analog_in, 1, input_mix_1, 1);
-AudioConnection          patchCord5(analog_in, 2, input_mix_0, 2);
-AudioConnection          patchCord6(analog_in, 2, input_mix_1, 2);
-AudioConnection          patchCord7(analog_in, 3, input_mix_0, 3);
-AudioConnection          patchCord8(analog_in, 3, input_mix_1, 3);
+AudioSynthWaveform       waveform2; //xy=563.3333129882812,477.3333435058594
+AudioSynthWaveform       waveform3; //xy=563.3333129882812,518.3333435058594
+AudioSynthWaveform       waveform4; //xy=563.3333129882812,560.3333435058594
+AudioSynthWaveform       waveform1;      //xy=564.3333129882812,437.3333435058594
+AudioInputUSB            from_host;           //xy=645.3333129882812,259.3333435058594
+AudioInputI2SQuad        analog_in;      //xy=649.3333129882812,119.3332748413086
+AudioAmplifier           amp1;           //xy=997.3333129882812,227.33334350585938
+AudioAmplifier           amp2;           //xy=999.3333129882812,274.33331298828125
+AudioMixer4              input_mix_1; //xy=1010.3333129882812,623.3333435058594
+AudioMixer4              input_mix_0;         //xy=1011.3333129882812,418.3333435058594
+AudioOutputUSB           to_host;           //xy=1445.3333740234375,495.3333435058594
+AudioOutputI2SQuad       analog_out;      //xy=1553.3333740234375,192.33331298828125
+AudioConnection          patchCord1(waveform2, 0, input_mix_0, 1);
+AudioConnection          patchCord2(waveform2, 0, input_mix_1, 1);
+AudioConnection          patchCord3(waveform3, 0, input_mix_0, 2);
+AudioConnection          patchCord4(waveform3, 0, input_mix_1, 2);
+AudioConnection          patchCord5(waveform4, 0, input_mix_0, 3);
+AudioConnection          patchCord6(waveform4, 0, input_mix_1, 3);
+AudioConnection          patchCord7(waveform1, 0, input_mix_0, 0);
+AudioConnection          patchCord8(waveform1, 0, input_mix_1, 0);
 AudioConnection          patchCord9(from_host, 0, amp1, 0);
 AudioConnection          patchCord10(from_host, 1, amp2, 0);
-AudioConnection          patchCord11(input_mix_0, 0, to_host, 0);
-AudioConnection          patchCord12(input_mix_1, 0, to_host, 1);
+AudioConnection          patchCord11(analog_in, 0, analog_out, 0);
+AudioConnection          patchCord12(analog_in, 1, analog_out, 1);
 AudioConnection          patchCord13(amp1, 0, analog_out, 2);
 AudioConnection          patchCord14(amp2, 0, analog_out, 3);
+AudioConnection          patchCord15(input_mix_1, 0, to_host, 1);
+AudioConnection          patchCord16(input_mix_0, 0, to_host, 0);
 AudioControlSGTL5000     sgtl5000_1;     //xy=846.3333282470703,869.3333282470703
 AudioControlSGTL5000     sgtl5000_2;     //xy=846.3333129882812,915.3333129882812
 // GUItool: end automatically generated code
 
 
 #include <Metro.h>
+#include <array>
 
 constexpr float hw_output_volume = 0.8f;
 constexpr auto midi_state_send_interval = 1000;
@@ -59,7 +55,7 @@ constexpr auto inbound_control_channel = 16;
 
 
 // My gains.
-std::array<byte, 12> channelGainState = {127, 0, 0, 0,    0, 0, 127, 0,    6, 6, 6, 6};
+std::array<byte, 12> channelGainState = {0, 0, 0, 0,    0, 0, 0, 0,    6, 6, 6, 6};
 
 byte whinePassFilterEnabled[2] = {127, 127};
 
@@ -162,8 +158,8 @@ void myControlChange(byte channel, byte control, byte value) {
 }
 
 void setup() {
-  Serial.begin(9600);
-  AudioMemory(16);
+  //Serial.begin(9600);
+  AudioMemory(64);
   
   // Set up sound chips.
   sgtl5000_1.setAddress(LOW);
@@ -182,8 +178,13 @@ void setup() {
   SPI.setMOSI(SDCARD_MOSI_PIN);
   SPI.setSCK(SDCARD_SCK_PIN);
 
+  waveform1.begin(0.5f, 440.f, WAVEFORM_SINE);
+  waveform2.begin(0.5f, 440.f, WAVEFORM_SAWTOOTH);
+  waveform3.begin(0.5f, 440.f, WAVEFORM_SQUARE);
+  waveform4.begin(0.5f, 440.f, WAVEFORM_TRIANGLE);
+
   // set up the default mix
-  input_mix_0.gain(0, 1.0f); // cc 16
+  input_mix_0.gain(0, 0.0f); // cc 16
   input_mix_0.gain(1, 0.0f); // cc 17
   input_mix_0.gain(2, 0.0f); // cc 18
   input_mix_0.gain(3, 0.0f); // cc 19
@@ -191,7 +192,7 @@ void setup() {
 
   input_mix_1.gain(0, 0.0f); // cc 20
   input_mix_1.gain(1, 0.0f); // cc 21
-  input_mix_1.gain(2, 1.0f); // cc 22
+  input_mix_1.gain(2, 0.0f); // cc 22
   input_mix_1.gain(3, 0.0f); // cc 23
 
   set_hp_gain(0.f);
