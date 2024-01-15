@@ -163,7 +163,7 @@ void myControlChange(byte channel, byte control, byte value) {
 
 void setup() {
   Serial.begin(9600);
-  AudioMemory(16);
+  AudioMemory(32);
   
   // Set up sound chips.
   sgtl5000_1.setAddress(LOW);
